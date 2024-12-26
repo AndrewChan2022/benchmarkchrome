@@ -50,19 +50,19 @@ module.exports = {
         }),
         // Plugin to generate subpage2.html
         new HtmlWebpackPlugin({
-            template: './src/testwebgpu/testwebgpu.ts',
+            template: './src/testwebgpu/testwebgpu.html',
             filename: 'testwebgpu.html',  // Output as subpage2.html
             chunks: ['testwebgpu'],  // Include subpage2.js script only
         }),
         // Plugin to generate subpage2.html
         new HtmlWebpackPlugin({
-            template: './src/testthreejswebgl/testthreejswebgl.ts',
+            template: './src/testthreejswebgl/testthreejswebgl.html',
             filename: 'testthreejswebgl.html',  // Output as subpage2.html
             chunks: ['testthreejswebgl'],  // Include subpage2.js script only
         }),
         // Plugin to generate subpage2.html
         new HtmlWebpackPlugin({
-            template: './src/testthreejswebgpu/testthreejswebgpu.ts',
+            template: './src/testthreejswebgpu/testthreejswebgpu.html',
             filename: 'testthreejswebgpu.html',  // Output as subpage2.html
             chunks: ['testthreejswebgpu'],  // Include subpage2.js script only
         }),
