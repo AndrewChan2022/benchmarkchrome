@@ -14,7 +14,13 @@ async function initializeWebGPU()  {
         throw new Error("WebGPU Adapter not available");
     }
 
-    const device = await adapter.requestDevice();
+    let deviceDescriptor = {
+        requiredLimits: {
+            maxBufferSize: adapter.limits.maxBufferSize,
+            maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+        }
+    };
+    const device = await adapter.requestDevice(deviceDescriptor);
     const context = canvas.getContext("webgpu");
 
     if (!context) {
@@ -36,14 +42,32 @@ async function initializeWebGPU()  {
     // Shader Program Class using WGSL
     class State {
         pipeline: GPURenderPipeline;
+        pipelineLayout: GPUPipelineLayout;
 
         constructor(device: GPUDevice, vertexShaderSource: string, fragmentShaderSource: string) {
+            this.pipelineLayout = this.createPipelineLayout(device);
             this.pipeline = this.createPipeline(device, vertexShaderSource, fragmentShaderSource);
         }
 
         // Create shader function using WGSL
         private createShader(device: GPUDevice, type: "vertex" | "fragment", source: string): GPUShaderModule {
             return device.createShaderModule({code: source,});
+        }
+
+        private createPipelineLayout(device: GPUDevice): GPUPipelineLayout {
+            // Define the bind group layout with the same uniform structure as your shaders
+            const bindGroupLayout = device.createBindGroupLayout({
+                entries: [{
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: { type: "uniform" },
+                }]
+            });
+    
+            // Create the pipeline layout with the bind group layout
+            return device.createPipelineLayout({
+                bindGroupLayouts: [bindGroupLayout],
+            });
         }
 
         // Create pipeline function
@@ -68,7 +92,8 @@ async function initializeWebGPU()  {
             };
 
             return device.createRenderPipeline({
-                layout: "auto", // Important: Use "auto" here
+                //layout: "auto", // Important: Use "auto" here
+                layout: this.pipelineLayout,
                 vertex: vertexState,
                 fragment: fragmentState,
                 primitive: {
@@ -151,6 +176,7 @@ async function initializeWebGPU()  {
         private frameCount: number = 0;
         private rotationAngle: number = 0;
         private paramsBuffer: GPUBuffer;
+        private stagingBuffer: GPUBuffer;
         private paramsBindGroupLayout: GPUBindGroupLayout;
         private paramsBindGroup: GPUBindGroup;
 
@@ -160,8 +186,14 @@ async function initializeWebGPU()  {
             this.renderMesh = createPlane(gridSize);
 
             this.paramsBuffer = device.createBuffer({
-                size: 12 * 4, // Size of mat3x4 (3 rows * 4 columns * 4 bytes/float)
+                size: Math.max(16  * 4, 64), // Size of mat3x4 (3 rows * 4 columns * 4 bytes/float)
                 usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            });
+
+            // Staging buffer for copying data from CPU to GPU
+            this.stagingBuffer = device.createBuffer({
+                size: 16 * 4, // Same size as paramsBuffer
+                usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
             });
 
             this.paramsBindGroupLayout = device.createBindGroupLayout({
@@ -177,11 +209,19 @@ async function initializeWebGPU()  {
             const radians = (this.rotationAngle * Math.PI) / 180;
             const cosTheta = Math.cos(radians);
             const sinTheta = Math.sin(radians);
+            const scale = 1.0;
             return new Float32Array([
-                cosTheta, -sinTheta, 0, 0,
-                sinTheta, cosTheta, 0, 0,
-                0, 0, 1, 0
+                cosTheta * scale, -sinTheta * scale, 0, 0,
+                sinTheta * scale, cosTheta * scale, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1
             ]);
+            // return new Float32Array([
+            //     1, 0, 0, 0,
+            //     0, 1, 0, 0,
+            //     0, 0, 1, 0,
+            //     0, 0, 0, 1
+            // ]);
         }
 
         animate(currentTime: number) {
@@ -198,9 +238,11 @@ async function initializeWebGPU()  {
 
             const rotationMatrix = this.calculateRotationMatrix();
 
-            this.device.queue.writeBuffer(this.paramsBuffer, 0, rotationMatrix);
+            // this.device.queue.writeBuffer(this.paramsBuffer, 0, rotationMatrix);
+            this.device.queue.writeBuffer(this.stagingBuffer, 0, rotationMatrix);
 
             const commandEncoder = this.device.createCommandEncoder();
+            commandEncoder.copyBufferToBuffer(this.stagingBuffer, 0, this.paramsBuffer, 0, rotationMatrix.byteLength);
             const renderPassDescriptor: GPURenderPassDescriptor = {
                 colorAttachments: [{
                     view: context.getCurrentTexture().createView(),
@@ -239,29 +281,29 @@ async function initializeWebGPU()  {
 
     const vertexShaderSource = `
         struct VertexInput {
-            [[location(0)]] position : vec3<f32>;
+            @location(0) position : vec3<f32>
         };
 
         struct Uniforms {
-            rotationMatrix: mat4x4<f32>;
+            rotationMatrix : mat4x4<f32>
         };
 
-        [[group(0), binding(0)]] var<uniform> uniforms : Uniforms;
+        @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
-        [[stage(vertex)]]
-        fn main(input : VertexInput) -> [[builtin(position)]] vec4<f32> {
+        @vertex
+        fn main(input : VertexInput) -> @builtin(position) vec4<f32> {
             return uniforms.rotationMatrix * vec4<f32>(input.position, 1.0);
         }
     `;
 
     const fragmentShaderSource = `
-        [[stage(fragment)]]
-        fn main() -> [[location(0)]] vec4<f32> {
+        @fragment
+        fn main() -> @location(0) vec4<f32> {
             return vec4<f32>(0.3, 0.6, 1.0, 1.0);
         }
     `;
 
-    const gridSize = 100;
+    const gridSize = 3970; //5120; // 7250;
     const renderer = new Renderer(device, vertexShaderSource, fragmentShaderSource, gridSize);
     renderer.start();
 
