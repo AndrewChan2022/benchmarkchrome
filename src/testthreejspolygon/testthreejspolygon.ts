@@ -2,6 +2,27 @@
 import * as THREE from 'three/src/Three.WebGPU';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+//////////////////////////////////////////////////////////////////////////////////
+//
+//  webgl implement: three\src\renderers\webgl\WebGLState.js
+//      enable( gl.POLYGON_OFFSET_FILL );
+//      gl.polygonOffset( factor, units );
+//  webgpu implement: three\src\renderers\webgpu\utils\WebGPUPipelineUtils.js
+//      depthStencil.depthBias = material.polygonOffsetUnits;
+//      depthStencil.depthBiasSlopeScale = material.polygonOffsetFactor;
+//      depthStencil.depthBiasClamp = 0; // three.js does not provide an API to configure this value
+//      
+//  formula:
+//      webgl:  depth offset = (factor × DZ) + (units × r)
+//      webgpu:  depth offset = (depthBias × r) + (depthBiasSlopeScale × DZ)
+//      final:  depth = origin depth + depth offset
+//      
+//      r is smallest depth difference the hardware can resolve,
+//      so unit smaller than 1 maybe no meaning. it should at least 1.0
+//
+//
+//////////////////////////////////////////////////////////////////////////////////
+
 // Create Scene, Camera, Renderer
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
