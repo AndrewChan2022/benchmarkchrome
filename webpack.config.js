@@ -14,6 +14,7 @@ module.exports = {
         testwebgpu: './src/testwebgpu/testwebgpu.ts',
         testthreejswebgl: './src/testthreejswebgl/testthreejswebgl.ts',
         testthreejswebgpu: './src/testthreejswebgpu/testthreejswebgpu.ts',
+        testthreejspolygon: './src/testthreejspolygon/testthreejspolygon.ts',
     },
 
     mode: "development",
@@ -65,6 +66,12 @@ module.exports = {
             template: './src/testthreejswebgpu/testthreejswebgpu.html',
             filename: 'testthreejswebgpu.html',  // Output as subpage2.html
             chunks: ['testthreejswebgpu'],  // Include subpage2.js script only
+        }),
+        // Plugin to generate subpage2.html
+        new HtmlWebpackPlugin({
+            template: './src/testthreejspolygon/testthreejspolygon.html',
+            filename: 'testthreejspolygon.html',  // Output as subpage2.html
+            chunks: ['testthreejspolygon'],  // Include subpage2.js script only
         }),
     ],
     module: {
