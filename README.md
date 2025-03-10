@@ -19,11 +19,11 @@ npm install three-mesh-bvh@latest three-stdlib@latest
 npm run build
 ```
 
-or
+<!-- or
 
 ```
 yarn build
-```
+``` -->
 
 
 
@@ -43,5 +43,3 @@ notes:
 
 
 ## 
-
-npm install three three-mesh-bvh @types/three
