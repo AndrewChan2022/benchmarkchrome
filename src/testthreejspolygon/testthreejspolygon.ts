@@ -11,6 +11,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 //      depthStencil.depthBias = material.polygonOffsetUnits;
 //      depthStencil.depthBiasSlopeScale = material.polygonOffsetFactor;
 //      depthStencil.depthBiasClamp = 0; // three.js does not provide an API to configure this value
+//      issue: https://github.com/mrdoob/three.js/issues/30494
+//      commit: https://github.com/mrdoob/three.js/pull/30496
 //      
 //  formula:
 //      webgl:  depth offset = (factor × DZ) + (units × r)
